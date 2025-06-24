@@ -2,9 +2,11 @@ import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
 import Pushover from "pushover-notifications";
+import express from "express"
 
 const INTERVAL_SECONDS = 60 * 10 // minutes
 const COOLDOWN_SECONDS = 60 * 60; // minutes
+const SNAPSHOT_URL = process.env.SNAPSHOT_URL;
 var lastPushTime = 0;
 
 function shouldPushNow() {
@@ -44,7 +46,7 @@ const run = async () => {
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: 'resp in json (without codeblock) - {"cat_detected": true/false, "tabby_cat": true/false, "white_spotted_cat": true/false, "desc": "short desc of env"}' },
+                        { type: "text", text: 'resp in json (without codeblock) - {"cat_detected": true/false, "is_adult": true/false, "tabby_cat": true/false, "white_spotted_cat": true/false, "desc": "short desc of env"}' },
                         {
                             type: "image_url",
                             image_url: {
@@ -62,16 +64,16 @@ const run = async () => {
 
         if (resJson.cat_detected && shouldPushNow()) {
             var message = "";
-            if (resJson.tabby_cat) {
+            if (resJson.tabby_cat && resJson.is_adult) {
                 message = "아홍이가 나타났어요"
-            } else if (resJson.white_spotted_cat) {
+            } else if (resJson.white_spotted_cat && resJson.is_adult) {
                 message = "외팔이가 나타났어요"
             } else {
                 message = "모르는 고양이가 나타났어요"
             }
             push.send({
                 title: "🐾 고양이 감지됨!",
-                message: message,
+                message: message + "\n" + SNAPSHOT_URL,
                 sound: "pushover",
                 priority: 0,
             }, (err, res) => {
@@ -86,5 +88,15 @@ const run = async () => {
         await sleep(INTERVAL_SECONDS * 1000); // 10분 대기
     }
 };
+
+// start server
+const app = express();
+const port = process.env.PORT || 47901;
+
+app.use(express.static('temp'));
+
+app.listen(port, () => {
+    log(`Catseye started on port: ${port}`);
+});
 
 run().catch(console.error);
