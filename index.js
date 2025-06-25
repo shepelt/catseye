@@ -4,8 +4,31 @@ import OpenAI from "openai";
 import Pushover from "pushover-notifications";
 import express from "express"
 
-const INTERVAL_SECONDS = 60 * 10 // minutes
-const COOLDOWN_SECONDS = 60 * 60; // minutes
+
+const log = (...args) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}]`, ...args);
+};
+
+var INTERVAL_SECONDS = 60 * 10 // minutes
+if (process.env.INTERVAL_SECONDS) {
+    const parsed = parseInt(process.env.INTERVAL_SECONDS, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+        INTERVAL_SECONDS = parsed;
+    }
+}
+
+var COOLDOWN_SECONDS = 60 * 60; // minutes
+if (process.env.COOLDOWN_SECONDS) {
+    const parsed = parseInt(process.env.COOLDOWN_SECONDS, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+        COOLDOWN_SECONDS = parsed;
+    }
+}
+
+log("Push cooldown", COOLDOWN_SECONDS)
+log("Check interval", INTERVAL_SECONDS)
+
 const SNAPSHOT_URL = process.env.SNAPSHOT_URL;
 var lastPushTime = 0;
 
@@ -27,10 +50,6 @@ const push = new Pushover({
     token: process.env.PUSHOVER_TOKEN,
 });
 
-const log = (...args) => {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}]`, ...args);
-};
 
 const cliImagePath = process.argv[2];
 const imagePath = path.resolve(cliImagePath || "temp/snapshot.jpg");
